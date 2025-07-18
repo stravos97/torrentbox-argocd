@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- base/configmap.yaml
+- base/namespace.yaml
+- base/storageclass-single-replica.yaml
+- base/storageclass-high-capacity.yaml
+- base/pvcs.yaml
+- base/torrentbox-secrets.yaml
+- apps/bazarr/
+- apps/doplarr/
+- apps/flaresolverr/
+- apps/jellyfin/
+- apps/jellyseer/
+- apps/lidarr/
+- apps/prowlarr/
+- apps/qbitrr/
+- apps/qbittorrent/
+- apps/radarr/
+- apps/sabnzbd/
+- apps/sonarr/

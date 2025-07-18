@@ -1,0 +1,28 @@
+# PVC for all application configurations  
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: config-pvc
+  namespace: torrentbox
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-single-replica
+  resources:
+    requests:
+      storage: 60Gi # Single replica via StorageClass
+      
+---
+# PVC for all media and download data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-pvc
+  namespace: torrentbox
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn-high-capacity
+  resources:
+    requests:
+      storage: 1400Gi # Single replica on high-capacity nodes

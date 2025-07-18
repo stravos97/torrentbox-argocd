@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyseer
+  namespace: torrentbox
+  labels:
+    app: jellyseer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jellyseer
+  template:
+    metadata:
+      labels:
+        app: jellyseer
+    spec:
+      terminationGracePeriodSeconds: 60
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: config-pvc
+        # Mount main data to allow Jellyseerr to potentially scan media if configured
+        - name: data
+          persistentVolumeClaim:
+            claimName: data-pvc
+      containers:
+        - name: jellyseer
+          image: fallenbagel/jellyseerr:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: webui
+              containerPort: 5055 # Port from compose file
+              protocol: TCP
+          env:
+            - name: PUID
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: PUID
+            - name: PGID
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: PGID
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: TZ
+            - name: UMASK
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: UMASK
+          volumeMounts:
+            - name: config
+              mountPath: /app/config # Matches compose volume
+              subPath: jellyseer
+            - name: data
+              mountPath: /data # Mount point for media access
+              subPath: media # Point specifically to the media subdirectory
+              readOnly: true # Jellyseerr likely only needs read access to media
+          readinessProbe:
+            httpGet:
+              path: /status # Jellyseerr status endpoint (check if this is correct)
+              port: webui
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3

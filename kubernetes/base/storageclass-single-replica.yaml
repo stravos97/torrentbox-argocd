@@ -1,0 +1,22 @@
+# Custom StorageClass for single-node cluster
+# This StorageClass creates volumes with only 1 replica, maximizing storage efficiency
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-single-replica
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+parameters:
+  # CRITICAL: Create only ONE replica of the data
+  # Perfect for single-node clusters where HA isn't possible anyway
+  numberOfReplicas: "1"
+  
+  # RECOMMENDED: Keep data on same node as application pod
+  # Reduces network overhead and improves performance
+  dataLocality: "best-effort"
+  
+  # Standard Longhorn parameters
+  staleReplicaTimeout: "2880" # 48 hours in minutes
+  fromBackup: ""

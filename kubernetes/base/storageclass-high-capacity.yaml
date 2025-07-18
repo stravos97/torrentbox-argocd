@@ -1,0 +1,23 @@
+# High-capacity StorageClass for large data volumes
+# Uses node selection to target high-storage nodes
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-high-capacity
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+parameters:
+  # Single replica for maximum storage efficiency
+  numberOfReplicas: "1"
+  
+  # Keep data on same node as application pod for performance
+  dataLocality: "best-effort"
+  
+  # Target only nodes with high-capacity storage
+  nodeSelector: "high-capacity"
+  
+  # Extended timeout for large volumes
+  staleReplicaTimeout: "2880" # 48 hours in minutes
+  fromBackup: ""

@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sabnzbd
+  namespace: torrentbox
+  labels:
+    app: sabnzbd
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sabnzbd
+  template:
+    metadata:
+      labels:
+        app: sabnzbd
+    spec:
+      terminationGracePeriodSeconds: 60
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: config-pvc
+        - name: data # Mount the consolidated data volume for downloads
+          persistentVolumeClaim:
+            claimName: data-pvc
+      containers:
+        - name: sabnzbd
+          image: lscr.io/linuxserver/sabnzbd:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: webui
+              containerPort: 8080 # Internal port Sabnzbd listens on
+              protocol: TCP
+            # Sabnzbd might also use port 9090 for HTTPS if configured
+            # - name: webui-https
+            #   containerPort: 9090
+            #   protocol: TCP
+          env:
+            - name: PUID
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: PUID
+            - name: PGID
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: PGID
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: TZ
+            - name: UMASK
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: UMASK
+          volumeMounts:
+            - name: config
+              mountPath: /config # Matches compose volume
+              subPath: sabnzbd
+            - name: data # Mount the consolidated volume
+              mountPath: /data # Mount point inside the container
+              subPath: usenet # Use a subpath for sabnzbd downloads/incomplete
+          readinessProbe:
+            httpGet:
+              # Check if the root path responds
+              path: / # Check root path instead of API
+              port: webui
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3

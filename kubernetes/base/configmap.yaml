@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: torrentbox-config
+  namespace: torrentbox
+data:
+  # General Settings
+  PUID: "1000"
+  PGID: "1000"
+  TZ: "Europe/London"
+  UMASK: "002" # Common umask from services
+
+  # Gluetun VPN Settings (NordVPN WireGuard)
+  VPN_SERVICE_PROVIDER: "nordvpn"
+  VPN_TYPE: "wireguard"
+  WIREGUARD_ADDRESSES: "10.5.0.2/32"
+  SERVER_REGIONS: "Europe"
+  SERVER_CATEGORIES: "Standard VPN servers,P2P"
+  UPDATER_PERIOD: "24h"
+  UPDATER_VPN_SERVICE_PROVIDERS: "nordvpn"
+  FIREWALL_OUTBOUND_SUBNETS: "192.168.1.0/24"
+  BLOCK_MALICIOUS: "off"
+  HEALTH_VPN_DURATION_INITIAL: "120s"
+
+  # qBittorrent Settings
+  QBITTORRENT_USERNAME: "admin" # Username is often less sensitive
+  WEBUI_PORT: "8080" # Default qBittorrent web UI port
+
+  # Flaresolverr Settings
+  LOG_LEVEL: "info"
+  LOG_HTML: "false"
+  CAPTCHA_SOLVER: "none"
+  
+  # Plex Settings
+  VERSION: "docker"
+
+  # Gluetun Health Check Target (Optional - Default is cloudflare.com:443)
+  HEALTH_TARGET_ADDRESS: "1.1.1.1:53" # Keep targeting Cloudflare DNS IP for health check
+
+  # Internal Hostnames/Ports (used for inter-service communication within the VPN network)
+  # These will point to the ClusterIP services we create later
+  QBITTORRENT_HOST: "qbittorrent.torrentbox.svc.cluster.local" # K8s service DNS name
+  SONARR_HOST: "sonarr.torrentbox.svc.cluster.local"
+  RADARR_HOST: "radarr.torrentbox.svc.cluster.local"
+  LIDARR_HOST: "lidarr.torrentbox.svc.cluster.local"
+  PROWLARR_HOST: "prowlarr.torrentbox.svc.cluster.local"
+  BAZARR_HOST: "bazarr.torrentbox.svc.cluster.local"
+  FLARESOLVERR_HOST: "flaresolverr.torrentbox.svc.cluster.local"
+
+  # Ports for internal communication (matching the ports exposed via Gluetun in compose)
+  QBITTORRENT_PORT: "8080"
+  SONARR_PORT: "8989"
+  RADARR_PORT: "7878"
+  LIDARR_PORT: "8686"
+  PROWLARR_PORT: "9696"
+  BAZARR_PORT: "6767"
+  FLARESOLVERR_PORT: "8191"

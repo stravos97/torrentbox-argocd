@@ -1,0 +1,148 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doplarr
+  namespace: torrentbox
+  labels:
+    app: doplarr
+spec:
+  replicas: 1
+  # Revert to default RollingUpdate strategy
+  # strategy:
+  #   type: Recreate
+  selector:
+    matchLabels:
+      app: doplarr
+  template:
+    metadata:
+      labels:
+        app: doplarr
+    spec:
+      terminationGracePeriodSeconds: 60
+      volumes:
+        - name: dev-net-tun
+          hostPath:
+            path: /dev/net/tun
+      containers:
+        # VPN Sidecar Container
+        - name: gluetun
+          image: qmcgaw/gluetun:v3.37.0
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]
+          env:
+            - name: VPN_SERVICE_PROVIDER
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: VPN_SERVICE_PROVIDER
+            - name: VPN_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: VPN_TYPE
+            - name: WIREGUARD_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: torrentbox-secrets
+                  key: WIREGUARD_PRIVATE_KEY
+            - name: WIREGUARD_ADDRESSES
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: WIREGUARD_ADDRESSES
+            - name: SERVER_REGIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: SERVER_REGIONS
+            - name: SERVER_CATEGORIES
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: SERVER_CATEGORIES
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: TZ
+            - name: UPDATER_PERIOD
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: UPDATER_PERIOD
+            - name: UPDATER_VPN_SERVICE_PROVIDERS
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: UPDATER_VPN_SERVICE_PROVIDERS
+            - name: FIREWALL_OUTBOUND_SUBNETS
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: FIREWALL_OUTBOUND_SUBNETS
+            - name: BLOCK_MALICIOUS
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: BLOCK_MALICIOUS
+            - name: HEALTH_VPN_DURATION_INITIAL
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: HEALTH_VPN_DURATION_INITIAL
+          volumeMounts:
+            - name: dev-net-tun
+              mountPath: /dev/net/tun
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+        
+        # Main Application Container
+        - name: doplarr
+          image: lscr.io/linuxserver/doplarr:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PUID
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: PUID
+            - name: PGID
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: PGID
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: TZ
+            # Construct URLs directly using service names
+            - name: SONARR__URL
+              # Use the service name and port directly
+              value: "http://sonarr.torrentbox.svc.cluster.local:8989"
+            - name: RADARR__URL
+              # Use the service name and port directly
+              value: "http://radarr.torrentbox.svc.cluster.local:7878"
+            # Get API keys from Secret
+            - name: SONARR__API
+              valueFrom:
+                secretKeyRef:
+                  name: torrentbox-secrets
+                  key: SONARR_API
+            - name: RADARR__API
+              valueFrom:
+                secretKeyRef:
+                  name: torrentbox-secrets
+                  key: RADARR_API
+            - name: DISCORD__TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: torrentbox-secrets
+                  key: DISCORD_BOT

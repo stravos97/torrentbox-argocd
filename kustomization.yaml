@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- kubernetes/base/configmap.yaml
+- kubernetes/base/namespace.yaml
+- kubernetes/base/pvcs.yaml
+- kubernetes/base/torrentbox-secrets.yaml
+- kubernetes/apps/bazarr/
+- kubernetes/apps/doplarr/
+- kubernetes/apps/flaresolverr/
+- kubernetes/apps/jellyfin/
+- kubernetes/apps/jellyseer/
+- kubernetes/apps/lidarr/
+- kubernetes/apps/prowlarr/
+- kubernetes/apps/qbitrr/
+- kubernetes/apps/qbittorrent/
+- kubernetes/apps/radarr/
+- kubernetes/apps/sabnzbd/
+- kubernetes/apps/sonarr/

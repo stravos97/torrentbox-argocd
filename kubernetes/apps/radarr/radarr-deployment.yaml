@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radarr
+  namespace: torrentbox
+  labels:
+    app: radarr
+spec:
+  replicas: 1
+  # Revert to default RollingUpdate strategy
+  # strategy:
+  #   type: Recreate
+  selector:
+    matchLabels:
+      app: radarr
+  template:
+    metadata:
+      labels:
+        app: radarr
+    spec:
+      terminationGracePeriodSeconds: 60
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: config-pvc
+        - name: data
+          persistentVolumeClaim:
+            claimName: data-pvc
+        - name: dev-net-tun
+          hostPath:
+            path: /dev/net/tun
+      containers:
+        # VPN Sidecar Container
+        - name: gluetun
+          image: qmcgaw/gluetun:v3.37.0
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]
+          ports:
+            - name: radarr-webui
+              containerPort: 7878
+              protocol: TCP
+          env:
+            - name: VPN_SERVICE_PROVIDER
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: VPN_SERVICE_PROVIDER
+            - name: VPN_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: VPN_TYPE
+            - name: WIREGUARD_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: torrentbox-secrets
+                  key: WIREGUARD_PRIVATE_KEY
+            - name: WIREGUARD_ADDRESSES
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: WIREGUARD_ADDRESSES
+            - name: SERVER_REGIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: SERVER_REGIONS
+            - name: SERVER_CATEGORIES
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: SERVER_CATEGORIES
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: TZ
+            - name: UPDATER_PERIOD
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: UPDATER_PERIOD
+            - name: UPDATER_VPN_SERVICE_PROVIDERS
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: UPDATER_VPN_SERVICE_PROVIDERS
+            - name: FIREWALL_OUTBOUND_SUBNETS
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: FIREWALL_OUTBOUND_SUBNETS
+            - name: BLOCK_MALICIOUS
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: BLOCK_MALICIOUS
+            - name: HEALTH_VPN_DURATION_INITIAL
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: HEALTH_VPN_DURATION_INITIAL
+          volumeMounts:
+            - name: dev-net-tun
+              mountPath: /dev/net/tun
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+        
+        # Main Application Container
+        - name: radarr
+          image: lscr.io/linuxserver/radarr:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PUID
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: PUID
+            - name: PGID
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: PGID
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: TZ
+            - name: UMASK # Added UMASK from compose example
+              valueFrom:
+                configMapKeyRef:
+                  name: torrentbox-config
+                  key: UMASK # Corrected this from TZ
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              subPath: radarr
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            tcpSocket:
+              port: 7878
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
