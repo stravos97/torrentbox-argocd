@@ -5,7 +5,7 @@ resources:
 - kubernetes/base/configmap.yaml
 - kubernetes/base/namespace.yaml
 - kubernetes/base/pvcs.yaml
-- kubernetes/base/torrentbox-secrets.yaml
+- kubernetes/base/secret.yaml
 - kubernetes/apps/bazarr/
 - kubernetes/apps/doplarr/
 - kubernetes/apps/flaresolverr/
